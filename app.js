@@ -14,12 +14,11 @@ const firebaseConfig = {
   appId: "1:233599253049:web:b82a435b59cbd739512be8"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 const userSelect = document.getElementById('userSelect');
 const taskList = document.getElementById('taskList');
