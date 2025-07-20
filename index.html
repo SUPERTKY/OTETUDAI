@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お手伝い管理</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>お手伝い管理アプリ</h1>
+  <div id="auth-status"></div>
+
+  <section id="user-section">
+    <label for="userSelect">ユーザー選択:</label>
+    <select id="userSelect"></select>
+  </section>
+
+  <section id="bonus-section">
+    <h2>ボーナス設定（親のみ）</h2>
+    <label>必要スタンプ数: <input type="number" id="requiredStamps" min="1"></label>
+    <label>ボーナス金額: <input type="number" id="bonusAmount" min="0"></label>
+    <button id="saveBonus">保存</button>
+  </section>
+
+  <section id="task-section">
+    <h2>手伝い一覧</h2>
+    <ul id="taskList"></ul>
+    <input type="text" id="newTask" placeholder="新しい手伝い">
+    <button id="addTask">追加</button>
+  </section>
+
+  <section id="history-section">
+    <h2>履歴</h2>
+    <ul id="historyList"></ul>
+  </section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
