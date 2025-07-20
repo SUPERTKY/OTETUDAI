@@ -21,6 +21,11 @@ button {
   margin-left: 10px;
 }
 
+#stampDisplay {
+  font-size: 1.5em;
+  margin-top: 5px;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 10px;

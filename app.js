@@ -21,14 +21,27 @@ const userSelect = document.getElementById('userSelect');
 const taskList = document.getElementById('taskList');
 const historyList = document.getElementById('historyList');
 const newTaskInput = document.getElementById('newTask');
+const taskRewardInput = document.getElementById('taskReward');
 const addTaskBtn = document.getElementById('addTask');
 const requiredInput = document.getElementById('requiredStamps');
 const bonusInput = document.getElementById('bonusAmount');
 const saveBonusBtn = document.getElementById('saveBonus');
 const authStatus = document.getElementById('auth-status');
+const stampDisplay = document.getElementById('stampDisplay');
 
 let currentUserId = null;
 let bonusConfig = { required: 5, amount: 500 };
+let usersData = {};
+let tasksData = {};
+let currentStamps = 0;
+
+function updateStampDisplay(stamps = currentStamps) {
+  currentStamps = stamps;
+  const max = bonusConfig.required;
+  const filled = '⭐'.repeat(stamps);
+  const empty = '☆'.repeat(Math.max(0, max - stamps));
+  stampDisplay.textContent = `スタンプ: ${filled}${empty} (${stamps}/${max})`;
+}
 
 signInAnonymously(auth)
   .catch(console.error);
@@ -45,29 +58,36 @@ onAuthStateChanged(auth, (user) => {
 
 function loadUsers() {
   onValue(ref(db, 'users'), (snapshot) => {
-    const data = snapshot.val() || {};
+    usersData = snapshot.val() || {};
     userSelect.innerHTML = '';
-    Object.entries(data).forEach(([id, user]) => {
+    Object.entries(usersData).forEach(([id, user]) => {
       const option = document.createElement('option');
       option.value = id;
       option.textContent = `${user.name} (スタンプ:${user.stamps || 0})`;
       userSelect.appendChild(option);
     });
-    currentUserId = userSelect.value;
+    if (!currentUserId || !usersData[currentUserId]) {
+      currentUserId = userSelect.value;
+    }
+    userSelect.value = currentUserId;
+    currentStamps = usersData[currentUserId]?.stamps || 0;
+    updateStampDisplay(currentStamps);
   });
 }
 
 userSelect.addEventListener('change', () => {
   currentUserId = userSelect.value;
+  currentStamps = usersData[currentUserId]?.stamps || 0;
+  updateStampDisplay(currentStamps);
 });
 
 function loadTasks() {
   onValue(ref(db, 'tasks'), (snapshot) => {
-    const tasks = snapshot.val() || {};
+    tasksData = snapshot.val() || {};
     taskList.innerHTML = '';
-    Object.entries(tasks).forEach(([id, task]) => {
+    Object.entries(tasksData).forEach(([id, task]) => {
       const li = document.createElement('li');
-      li.textContent = task.name;
+      li.textContent = `${task.name} (${task.reward || 0}円)`;
       const doneBtn = document.createElement('button');
       doneBtn.textContent = 'やった!';
       doneBtn.addEventListener('click', () => recordTask(id, task.name));
@@ -83,7 +103,8 @@ function loadHistory() {
     historyList.innerHTML = '';
     Object.values(histories).forEach(h => {
       const li = document.createElement('li');
-      li.textContent = `${h.userName} が ${h.taskName} を実施 (${new Date(h.timestamp).toLocaleString()})`;
+      const rewardTxt = h.reward ? ` (${h.reward}円)` : '';
+      li.textContent = `${h.userName} が ${h.taskName}${rewardTxt} を実施 (${new Date(h.timestamp).toLocaleString()})`;
       historyList.appendChild(li);
     });
   });
@@ -94,15 +115,18 @@ function loadBonus() {
     bonusConfig = snapshot.val() || bonusConfig;
     requiredInput.value = bonusConfig.required;
     bonusInput.value = bonusConfig.amount;
+    updateStampDisplay(currentStamps);
   });
 }
 
 addTaskBtn.addEventListener('click', () => {
   const name = newTaskInput.value.trim();
+  const reward = Number(taskRewardInput.value) || 0;
   if (!name) return;
   const newRef = push(ref(db, 'tasks'));
-  set(newRef, { name });
+  set(newRef, { name, reward });
   newTaskInput.value = '';
+  taskRewardInput.value = '';
 });
 
 saveBonusBtn.addEventListener('click', () => {
@@ -111,6 +135,7 @@ saveBonusBtn.addEventListener('click', () => {
     amount: Number(bonusInput.value)
   };
   set(ref(db, 'bonus'), bonusConfig);
+  updateStampDisplay(currentStamps);
 });
 
 function recordTask(taskId, taskName) {
@@ -124,11 +149,15 @@ function recordTask(taskId, taskName) {
     set(histRef, {
       userName: user.name,
       taskName,
+      reward: tasksData[taskId]?.reward || 0,
       timestamp: Date.now()
     });
     if (stamps >= bonusConfig.required) {
       alert(`${user.name} さんはボーナス達成! ${bonusConfig.amount}円ゲット`);
       update(userRef, { stamps: 0 });
+      updateStampDisplay(0);
+    } else {
+      updateStampDisplay(stamps);
     }
   });
 }
