@@ -64,8 +64,7 @@ function init() {
 }
 
 function updateStampDisplay(stamps = currentStamps) {
-  currentStamps = stamps;
-  stampDisplay.textContent = `スタンプ: ${stamps}個`;
+
 }
 
 function updateAllowanceDisplay(amount = currentAllowance) {
