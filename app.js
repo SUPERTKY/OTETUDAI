@@ -2,8 +2,6 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getDatabase, ref, push, set, onValue, update, child, get, runTransaction, remove } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
-// Firebase設定
-
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -15,6 +13,7 @@ const firebaseConfig = {
   messagingSenderId: "233599253049",
   appId: "1:233599253049:web:b82a435b59cbd739512be8"
 };
+
 
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -229,6 +228,8 @@ function handlePayAllowance() {
       const pRef = push(ref(db, 'payments'));
       set(pRef, { userName: user.name, amount, timestamp: Date.now() });
       limitList('payments');
+      // 支払い完了時にやった！履歴をリセットする
+      set(ref(db, 'history'), null);
     }
   });
 }
