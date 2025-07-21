@@ -128,14 +128,22 @@ function loadPayments() {
   onValue(ref(db, 'payments'), (snapshot) => {
     const payments = snapshot.val() || {};
     paymentList.innerHTML = '';
-    Object.values(payments)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .forEach(p => {
+    Object.entries(payments)
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)
+      .forEach(([key, p]) => {
         const li = document.createElement('li');
         li.textContent = `${p.userName} に ${p.amount}円 渡した (${new Date(p.timestamp).toLocaleString()})`;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.addEventListener('click', () => deletePaymentItem(key));
+        li.appendChild(delBtn);
         paymentList.appendChild(li);
       });
   });
+}
+
+function deletePaymentItem(key) {
+  set(ref(db, `payments/${key}`), null);
 }
 
 function recordTask(taskId, taskName) {
