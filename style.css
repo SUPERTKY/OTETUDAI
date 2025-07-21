@@ -21,6 +21,15 @@ button {
   margin-left: 10px;
 }
 
+#loginSection {
+  margin-bottom: 20px;
+}
+
+.error {
+  color: red;
+  margin-top: 5px;
+}
+
 #stampDisplay {
   font-size: 1.5em;
   margin-top: 5px;
