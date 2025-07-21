@@ -3,8 +3,6 @@ import { getDatabase, ref, push, set, onValue, update, child, get, runTransactio
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDGDZlMJOo4ywROtY2h0LSbOaH6iKd8sNU",
   authDomain: "otetudai-d5648.firebaseapp.com",
@@ -104,6 +102,10 @@ function loadTasks() {
     tasksData = snapshot.val() || {};
     taskList.innerHTML = '';
     Object.entries(tasksData).forEach(([id, task]) => {
+      if (task.reward === undefined) {
+        update(ref(db, `tasks/${id}`), { reward: 0 });
+        task.reward = 0;
+      }
       const li = document.createElement('li');
       li.textContent = `${task.name} (${task.reward || 0}円)`;
       const doneBtn = document.createElement('button');
