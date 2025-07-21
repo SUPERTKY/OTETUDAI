@@ -1,6 +1,5 @@
-
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-import { getDatabase, ref, push, set, onValue, update, child, get } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+import { getDatabase, ref, push, set, onValue, update, child, get, runTransaction } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 
@@ -15,7 +14,6 @@ const firebaseConfig = {
   messagingSenderId: "233599253049",
   appId: "1:233599253049:web:b82a435b59cbd739512be8"
 };
-
 
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -176,12 +174,22 @@ saveBonusBtn.addEventListener('click', () => {
 function recordTask(taskId, taskName) {
   if (!currentUserId) return;
   const userRef = ref(db, `users/${currentUserId}`);
-  get(userRef).then(snap => {
-    const user = snap.val();
-    let stamps = (user.stamps || 0) + 1;
-    let allowance = user.allowance || 0;
-    const reward = tasksData[taskId]?.reward || 0;
-    allowance += reward;
+  const reward = tasksData[taskId]?.reward || 0;
+  let bonusEarned = false;
+  runTransaction(userRef, user => {
+    if (!user) {
+      user = { name: usersData[currentUserId]?.name || 'unknown', stamps: 0, allowance: 0 };
+    }
+    user.stamps = (user.stamps || 0) + 1;
+    user.allowance = (user.allowance || 0) + reward;
+    if (user.stamps >= bonusConfig.required) {
+      user.stamps = 0;
+      user.allowance += bonusConfig.amount;
+      bonusEarned = true;
+    }
+    return user;
+  }).then(result => {
+    const user = result.snapshot.val();
     const histRef = push(ref(db, 'history'));
     set(histRef, {
       userName: user.name,
@@ -190,14 +198,11 @@ function recordTask(taskId, taskName) {
       timestamp: Date.now()
     });
     limitList('history');
-    if (stamps >= bonusConfig.required) {
+    updateStampDisplay(user.stamps);
+    updateAllowanceDisplay(user.allowance);
+    if (bonusEarned) {
       alert(`${user.name} さんはボーナス達成! ${bonusConfig.amount}円ゲット`);
-      stamps = 0;
-      allowance += bonusConfig.amount;
     }
-    update(userRef, { stamps, allowance });
-    updateStampDisplay(stamps);
-    updateAllowanceDisplay(allowance);
   });
 }
 
@@ -214,15 +219,20 @@ function limitList(path, limit = 10) {
 
 payAllowanceBtn.addEventListener('click', () => {
   if (!currentUserId) return;
-  const amount = currentAllowance;
-  if (amount <= 0) return;
   const userRef = ref(db, `users/${currentUserId}`);
-  get(userRef).then(snap => {
-    const user = snap.val();
-    update(userRef, { allowance: 0 });
+  let amount = 0;
+  runTransaction(userRef, user => {
+    if (!user) return user;
+    amount = user.allowance || 0;
+    user.allowance = 0;
+    return user;
+  }).then(result => {
+    const user = result.snapshot.val();
     updateAllowanceDisplay(0);
-    const pRef = push(ref(db, 'payments'));
-    set(pRef, { userName: user.name, amount, timestamp: Date.now() });
-    limitList('payments');
+    if (amount > 0) {
+      const pRef = push(ref(db, 'payments'));
+      set(pRef, { userName: user.name, amount, timestamp: Date.now() });
+      limitList('payments');
+    }
   });
 });
