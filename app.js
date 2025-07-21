@@ -23,9 +23,6 @@ let paymentList;
 let newTaskInput;
 let taskRewardInput;
 let addTaskBtn;
-let requiredInput;
-let bonusInput;
-let saveBonusBtn;
 let authStatus;
 let stampDisplay;
 let allowanceDisplay;
@@ -34,7 +31,6 @@ let payAllowanceBtn;
 const DEFAULT_USER_ID = 'default';
 let currentUserId = DEFAULT_USER_ID;
 let userName = '子ども';
-let bonusConfig = { required: 5, amount: 500 };
 let tasksData = {};
 let currentStamps = 0;
 let currentAllowance = 0;
@@ -46,9 +42,6 @@ function init() {
   newTaskInput = document.getElementById('newTask');
   taskRewardInput = document.getElementById('taskReward');
   addTaskBtn = document.getElementById('addTask');
-  requiredInput = document.getElementById('requiredStamps');
-  bonusInput = document.getElementById('bonusAmount');
-  saveBonusBtn = document.getElementById('saveBonus');
   authStatus = document.getElementById('auth-status');
   stampDisplay = document.getElementById('stampDisplay');
   allowanceDisplay = document.getElementById('allowanceDisplay');
@@ -61,23 +54,18 @@ function init() {
       authStatus.textContent = 'ログイン済み';
       loadUser();
       loadTasks();
-      loadBonus();
       loadHistory();
       loadPayments();
     }
   });
 
   addTaskBtn?.addEventListener('click', handleAddTask);
-  saveBonusBtn?.addEventListener('click', handleSaveBonus);
   payAllowanceBtn?.addEventListener('click', handlePayAllowance);
 }
 
 function updateStampDisplay(stamps = currentStamps) {
   currentStamps = stamps;
-  const max = bonusConfig.required;
-  const filled = '⭐'.repeat(stamps);
-  const empty = '☆'.repeat(Math.max(0, max - stamps));
-  stampDisplay.textContent = `スタンプ: ${filled}${empty} (${stamps}/${max})`;
+  stampDisplay.textContent = `スタンプ: ${stamps}個`;
 }
 
 function updateAllowanceDisplay(amount = currentAllowance) {
@@ -121,12 +109,16 @@ function loadHistory() {
   onValue(ref(db, 'history'), (snapshot) => {
     const histories = snapshot.val() || {};
     historyList.innerHTML = '';
-    Object.values(histories)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .forEach(h => {
+    Object.entries(histories)
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)
+      .forEach(([key, h]) => {
         const li = document.createElement('li');
         const rewardTxt = h.reward ? ` (${h.reward}円)` : '';
         li.textContent = `${h.userName} が ${h.taskName}${rewardTxt} を実施 (${new Date(h.timestamp).toLocaleString()})`;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.addEventListener('click', () => set(ref(db, `history/${key}`), null));
+        li.appendChild(delBtn);
         historyList.appendChild(li);
       });
   });
@@ -146,32 +138,16 @@ function loadPayments() {
   });
 }
 
-function loadBonus() {
-  onValue(ref(db, 'bonus'), (snapshot) => {
-    bonusConfig = snapshot.val() || bonusConfig;
-    requiredInput.value = bonusConfig.required;
-    bonusInput.value = bonusConfig.amount;
-    updateStampDisplay(currentStamps);
-  });
-}
-
-
 function recordTask(taskId, taskName) {
   if (!currentUserId) return;
   const userRef = ref(db, `users/${currentUserId}`);
   const reward = Number(tasksData[taskId]?.reward) || 0;
-  let bonusEarned = false;
-    runTransaction(userRef, user => {
+  runTransaction(userRef, user => {
       if (!user) {
         user = { name: userName, stamps: 0, allowance: 0 };
       }
     user.stamps = Number(user.stamps || 0) + 1;
     user.allowance = Number(user.allowance || 0) + reward;
-    if (user.stamps >= bonusConfig.required) {
-      user.stamps = 0;
-      user.allowance += bonusConfig.amount;
-      bonusEarned = true;
-    }
     return user;
   }).then(result => {
     const user = result.snapshot.val();
@@ -185,9 +161,6 @@ function recordTask(taskId, taskName) {
     limitList('history');
     updateStampDisplay(user.stamps);
     updateAllowanceDisplay(user.allowance);
-    if (bonusEarned) {
-      alert(`${user.name} さんはボーナス達成! ${bonusConfig.amount}円ゲット`);
-    }
   });
 }
 
@@ -210,15 +183,6 @@ function handleAddTask() {
   set(newRef, { name, reward });
   newTaskInput.value = '';
   taskRewardInput.value = '';
-}
-
-function handleSaveBonus() {
-  bonusConfig = {
-    required: Number(requiredInput.value),
-    amount: Number(bonusInput.value)
-  };
-  set(ref(db, 'bonus'), bonusConfig);
-  updateStampDisplay(currentStamps);
 }
 
 function handlePayAllowance() {
