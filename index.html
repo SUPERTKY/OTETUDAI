@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お手伝い管理</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>お手伝い管理アプリ</h1>
+  <div id="auth-status"></div>
+
+  <section id="user-section">
+    <div id="stampDisplay"></div>
+    <div id="allowanceDisplay"></div>
+    <button id="payAllowance">お小遣いを渡す</button>
+  </section>
+
+
+  <section id="task-section">
+    <h2>手伝い一覧</h2>
+    <ul id="taskList"></ul>
+    <input type="text" id="newTask" placeholder="新しい手伝い">
+    <input type="number" id="taskReward" placeholder="報酬(円)" min="0">
+    <button id="addTask">追加</button>
+  </section>
+
+  <section id="history-section">
+    <h2>履歴</h2>
+    <ul id="historyList"></ul>
+  </section>
+
+  <section id="payment-section">
+    <h2>渡した履歴</h2>
+    <ul id="paymentList"></ul>
+  </section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
