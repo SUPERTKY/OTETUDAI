@@ -117,7 +117,7 @@ function loadHistory() {
         li.textContent = `${h.userName} が ${h.taskName}${rewardTxt} を実施 (${new Date(h.timestamp).toLocaleString()})`;
         const delBtn = document.createElement('button');
         delBtn.textContent = '削除';
-        delBtn.addEventListener('click', () => set(ref(db, `history/${key}`), null));
+        delBtn.addEventListener('click', () => deleteHistoryItem(key, h.reward));
         li.appendChild(delBtn);
         historyList.appendChild(li);
       });
@@ -172,6 +172,21 @@ function limitList(path, limit = 10) {
       const [key] = entries.shift();
       set(ref(db, `${path}/${key}`), null);
     }
+  });
+}
+
+function deleteHistoryItem(key, reward = 0) {
+  const userRef = ref(db, `users/${DEFAULT_USER_ID}`);
+  runTransaction(userRef, user => {
+    if (!user) return user;
+    user.stamps = Math.max(0, Number(user.stamps || 0) - 1);
+    user.allowance = Math.max(0, Number(user.allowance || 0) - Number(reward || 0));
+    return user;
+  }).then(result => {
+    const user = result.snapshot.val();
+    updateStampDisplay(user.stamps);
+    updateAllowanceDisplay(user.allowance);
+    set(ref(db, `history/${key}`), null);
   });
 }
 
