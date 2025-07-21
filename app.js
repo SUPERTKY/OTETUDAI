@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-import { getDatabase, ref, push, set, onValue, update, child, get, runTransaction } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+import { getDatabase, ref, push, set, onValue, update, child, get, runTransaction, remove } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 // Firebase設定
@@ -143,7 +143,8 @@ function loadPayments() {
 }
 
 function deletePaymentItem(key) {
-  set(ref(db, `payments/${key}`), null);
+  // 支払い履歴の削除は残高に影響を与えない
+  remove(ref(db, `payments/${key}`));
 }
 
 function recordTask(taskId, taskName) {
