@@ -3,7 +3,6 @@ import { getDatabase, ref, push, set, onValue, update, child, get, runTransactio
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 
-
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDGDZlMJOo4ywROtY2h0LSbOaH6iKd8sNU",
@@ -16,23 +15,24 @@ const firebaseConfig = {
 };
 
 
+
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const auth = getAuth(firebaseApp);
 
-const taskList = document.getElementById('taskList');
-const historyList = document.getElementById('historyList');
-const paymentList = document.getElementById('paymentList');
-const newTaskInput = document.getElementById('newTask');
-const taskRewardInput = document.getElementById('taskReward');
-const addTaskBtn = document.getElementById('addTask');
-const requiredInput = document.getElementById('requiredStamps');
-const bonusInput = document.getElementById('bonusAmount');
-const saveBonusBtn = document.getElementById('saveBonus');
-const authStatus = document.getElementById('auth-status');
-const stampDisplay = document.getElementById('stampDisplay');
-const allowanceDisplay = document.getElementById('allowanceDisplay');
-const payAllowanceBtn = document.getElementById('payAllowance');
+let taskList;
+let historyList;
+let paymentList;
+let newTaskInput;
+let taskRewardInput;
+let addTaskBtn;
+let requiredInput;
+let bonusInput;
+let saveBonusBtn;
+let authStatus;
+let stampDisplay;
+let allowanceDisplay;
+let payAllowanceBtn;
 
 const DEFAULT_USER_ID = 'default';
 let currentUserId = DEFAULT_USER_ID;
@@ -41,6 +41,39 @@ let bonusConfig = { required: 5, amount: 500 };
 let tasksData = {};
 let currentStamps = 0;
 let currentAllowance = 0;
+
+function init() {
+  taskList = document.getElementById('taskList');
+  historyList = document.getElementById('historyList');
+  paymentList = document.getElementById('paymentList');
+  newTaskInput = document.getElementById('newTask');
+  taskRewardInput = document.getElementById('taskReward');
+  addTaskBtn = document.getElementById('addTask');
+  requiredInput = document.getElementById('requiredStamps');
+  bonusInput = document.getElementById('bonusAmount');
+  saveBonusBtn = document.getElementById('saveBonus');
+  authStatus = document.getElementById('auth-status');
+  stampDisplay = document.getElementById('stampDisplay');
+  allowanceDisplay = document.getElementById('allowanceDisplay');
+  payAllowanceBtn = document.getElementById('payAllowance');
+
+  signInAnonymously(auth).catch(console.error);
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      authStatus.textContent = 'ログイン済み';
+      loadUser();
+      loadTasks();
+      loadBonus();
+      loadHistory();
+      loadPayments();
+    }
+  });
+
+  addTaskBtn?.addEventListener('click', handleAddTask);
+  saveBonusBtn?.addEventListener('click', handleSaveBonus);
+  payAllowanceBtn?.addEventListener('click', handlePayAllowance);
+}
 
 function updateStampDisplay(stamps = currentStamps) {
   currentStamps = stamps;
@@ -55,19 +88,6 @@ function updateAllowanceDisplay(amount = currentAllowance) {
   allowanceDisplay.textContent = `たまったお小遣い: ${amount}円`;
 }
 
-signInAnonymously(auth)
-  .catch(console.error);
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    authStatus.textContent = 'ログイン済み';
-    loadUser();
-    loadTasks();
-    loadBonus();
-    loadHistory();
-    loadPayments();
-  }
-});
 
 function loadUser() {
   onValue(ref(db, `users/${DEFAULT_USER_ID}`), (snapshot) => {
@@ -138,24 +158,6 @@ function loadBonus() {
   });
 }
 
-addTaskBtn.addEventListener('click', () => {
-  const name = newTaskInput.value.trim();
-  const reward = Number(taskRewardInput.value) || 0;
-  if (!name) return;
-  const newRef = push(ref(db, 'tasks'));
-  set(newRef, { name, reward });
-  newTaskInput.value = '';
-  taskRewardInput.value = '';
-});
-
-saveBonusBtn.addEventListener('click', () => {
-  bonusConfig = {
-    required: Number(requiredInput.value),
-    amount: Number(bonusInput.value)
-  };
-  set(ref(db, 'bonus'), bonusConfig);
-  updateStampDisplay(currentStamps);
-});
 
 function recordTask(taskId, taskName) {
   if (!currentUserId) return;
@@ -203,7 +205,26 @@ function limitList(path, limit = 10) {
   });
 }
 
-payAllowanceBtn.addEventListener('click', () => {
+function handleAddTask() {
+  const name = newTaskInput.value.trim();
+  const reward = Number(taskRewardInput.value) || 0;
+  if (!name) return;
+  const newRef = push(ref(db, 'tasks'));
+  set(newRef, { name, reward });
+  newTaskInput.value = '';
+  taskRewardInput.value = '';
+}
+
+function handleSaveBonus() {
+  bonusConfig = {
+    required: Number(requiredInput.value),
+    amount: Number(bonusInput.value)
+  };
+  set(ref(db, 'bonus'), bonusConfig);
+  updateStampDisplay(currentStamps);
+}
+
+function handlePayAllowance() {
   if (!currentUserId) return;
   const userRef = ref(db, `users/${currentUserId}`);
   let amount = 0;
@@ -221,4 +242,6 @@ payAllowanceBtn.addEventListener('click', () => {
       limitList('payments');
     }
   });
-});
+}
+
+window.addEventListener('DOMContentLoaded', init);
