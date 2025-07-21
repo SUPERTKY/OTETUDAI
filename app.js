@@ -171,14 +171,14 @@ saveBonusBtn.addEventListener('click', () => {
 function recordTask(taskId, taskName) {
   if (!currentUserId) return;
   const userRef = ref(db, `users/${currentUserId}`);
-  const reward = tasksData[taskId]?.reward || 0;
+  const reward = Number(tasksData[taskId]?.reward) || 0;
   let bonusEarned = false;
   runTransaction(userRef, user => {
     if (!user) {
       user = { name: usersData[currentUserId]?.name || 'unknown', stamps: 0, allowance: 0 };
     }
-    user.stamps = (user.stamps || 0) + 1;
-    user.allowance = (user.allowance || 0) + reward;
+    user.stamps = Number(user.stamps || 0) + 1;
+    user.allowance = Number(user.allowance || 0) + reward;
     if (user.stamps >= bonusConfig.required) {
       user.stamps = 0;
       user.allowance += bonusConfig.amount;
@@ -220,7 +220,7 @@ payAllowanceBtn.addEventListener('click', () => {
   let amount = 0;
   runTransaction(userRef, user => {
     if (!user) return user;
-    amount = user.allowance || 0;
+    amount = Number(user.allowance) || 0;
     user.allowance = 0;
     return user;
   }).then(result => {
