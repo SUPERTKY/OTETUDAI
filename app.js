@@ -3,6 +3,7 @@ import { getDatabase, ref, push, set, onValue, update, child, get, runTransactio
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDGDZlMJOo4ywROtY2h0LSbOaH6iKd8sNU",
@@ -30,6 +31,12 @@ let authStatus;
 let stampDisplay;
 let allowanceDisplay;
 let payAllowanceBtn;
+let loginSection;
+let passwordInput;
+let loginBtn;
+let loginError;
+let mainSection;
+let dbPassword = '';
 
 const DEFAULT_USER_ID = 'default';
 let currentUserId = DEFAULT_USER_ID;
@@ -49,30 +56,40 @@ function init() {
   stampDisplay = document.getElementById('stampDisplay');
   allowanceDisplay = document.getElementById('allowanceDisplay');
   payAllowanceBtn = document.getElementById('payAllowance');
+  loginSection = document.getElementById('loginSection');
+  passwordInput = document.getElementById('passwordInput');
+  loginBtn = document.getElementById('loginBtn');
+  loginError = document.getElementById('loginError');
+  mainSection = document.getElementById('main');
 
   signInAnonymously(auth).catch(console.error);
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       authStatus.textContent = 'ログイン済み';
-      loadUser();
-      loadTasks();
-      loadHistory();
-      loadPayments();
+      loadPassword();
     }
   });
 
   addTaskBtn?.addEventListener('click', handleAddTask);
   payAllowanceBtn?.addEventListener('click', handlePayAllowance);
+  loginBtn?.addEventListener('click', handleLogin);
 }
 
 function updateStampDisplay(stamps = currentStamps) {
-
+  currentStamps = stamps;
+  stampDisplay.textContent = `スタンプ: ${stamps}個`;
 }
 
 function updateAllowanceDisplay(amount = currentAllowance) {
   currentAllowance = amount;
   allowanceDisplay.textContent = `たまったお小遣い: ${amount}円`;
+}
+
+function loadPassword() {
+  get(ref(db, 'password')).then(snapshot => {
+    dbPassword = snapshot.val() || '';
+  });
 }
 
 
@@ -102,6 +119,10 @@ function loadTasks() {
       doneBtn.textContent = 'やった!';
       doneBtn.addEventListener('click', () => recordTask(id, task.name));
       li.appendChild(doneBtn);
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.addEventListener('click', () => deleteTask(id));
+      li.appendChild(delBtn);
       taskList.appendChild(li);
     });
   });
@@ -147,6 +168,22 @@ function loadPayments() {
 function deletePaymentItem(key) {
   // 支払い履歴の削除は残高に影響を与えない
   remove(ref(db, `payments/${key}`));
+}
+
+function handleLogin() {
+  const input = passwordInput.value;
+  if (input === dbPassword) {
+    loginSection.style.display = 'none';
+    mainSection.style.display = 'block';
+    loadUser();
+    loadTasks();
+    loadHistory();
+    loadPayments();
+    passwordInput.value = '';
+    loginError.textContent = '';
+  } else {
+    loginError.textContent = 'パスワードが違います';
+  }
 }
 
 function recordTask(taskId, taskName) {
@@ -199,6 +236,10 @@ function deleteHistoryItem(key, reward = 0) {
     updateAllowanceDisplay(user.allowance);
     set(ref(db, `history/${key}`), null);
   });
+}
+
+function deleteTask(taskId) {
+  set(ref(db, `tasks/${taskId}`), null);
 }
 
 function handleAddTask() {
