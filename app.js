@@ -3,6 +3,8 @@ import { getDatabase, ref, push, set, onValue, update, child, get, runTransactio
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
 
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDGDZlMJOo4ywROtY2h0LSbOaH6iKd8sNU",
   authDomain: "otetudai-d5648.firebaseapp.com",
@@ -14,12 +16,10 @@ const firebaseConfig = {
 };
 
 
-
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const auth = getAuth(firebaseApp);
 
-const userSelect = document.getElementById('userSelect');
 const taskList = document.getElementById('taskList');
 const historyList = document.getElementById('historyList');
 const paymentList = document.getElementById('paymentList');
@@ -34,9 +34,10 @@ const stampDisplay = document.getElementById('stampDisplay');
 const allowanceDisplay = document.getElementById('allowanceDisplay');
 const payAllowanceBtn = document.getElementById('payAllowance');
 
-let currentUserId = null;
+const DEFAULT_USER_ID = 'default';
+let currentUserId = DEFAULT_USER_ID;
+let userName = '子ども';
 let bonusConfig = { required: 5, amount: 500 };
-let usersData = {};
 let tasksData = {};
 let currentStamps = 0;
 let currentAllowance = 0;
@@ -60,7 +61,7 @@ signInAnonymously(auth)
 onAuthStateChanged(auth, (user) => {
   if (user) {
     authStatus.textContent = 'ログイン済み';
-    loadUsers();
+    loadUser();
     loadTasks();
     loadBonus();
     loadHistory();
@@ -68,34 +69,16 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-function loadUsers() {
-  onValue(ref(db, 'users'), (snapshot) => {
-    usersData = snapshot.val() || {};
-    userSelect.innerHTML = '';
-    Object.entries(usersData).forEach(([id, user]) => {
-      const option = document.createElement('option');
-      option.value = id;
-      option.textContent = `${user.name} (スタンプ:${user.stamps || 0} お小遣い:${user.allowance || 0}円)`;
-      userSelect.appendChild(option);
-    });
-    if (!currentUserId || !usersData[currentUserId]) {
-      currentUserId = userSelect.value;
-    }
-    userSelect.value = currentUserId;
-    currentStamps = usersData[currentUserId]?.stamps || 0;
+function loadUser() {
+  onValue(ref(db, `users/${DEFAULT_USER_ID}`), (snapshot) => {
+    const user = snapshot.val() || { name: userName, stamps: 0, allowance: 0 };
+    userName = user.name;
+    currentStamps = user.stamps || 0;
     updateStampDisplay(currentStamps);
-    currentAllowance = usersData[currentUserId]?.allowance || 0;
+    currentAllowance = user.allowance || 0;
     updateAllowanceDisplay(currentAllowance);
   });
 }
-
-userSelect.addEventListener('change', () => {
-  currentUserId = userSelect.value;
-  currentStamps = usersData[currentUserId]?.stamps || 0;
-  updateStampDisplay(currentStamps);
-  currentAllowance = usersData[currentUserId]?.allowance || 0;
-  updateAllowanceDisplay(currentAllowance);
-});
 
 function loadTasks() {
   onValue(ref(db, 'tasks'), (snapshot) => {
@@ -179,10 +162,10 @@ function recordTask(taskId, taskName) {
   const userRef = ref(db, `users/${currentUserId}`);
   const reward = Number(tasksData[taskId]?.reward) || 0;
   let bonusEarned = false;
-  runTransaction(userRef, user => {
-    if (!user) {
-      user = { name: usersData[currentUserId]?.name || 'unknown', stamps: 0, allowance: 0 };
-    }
+    runTransaction(userRef, user => {
+      if (!user) {
+        user = { name: userName, stamps: 0, allowance: 0 };
+      }
     user.stamps = Number(user.stamps || 0) + 1;
     user.allowance = Number(user.allowance || 0) + reward;
     if (user.stamps >= bonusConfig.required) {
