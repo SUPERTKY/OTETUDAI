@@ -3,16 +3,20 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getDatabase, ref, push, set, onValue, update, child, get } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 
-// Firebase設定
+
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "YOUR_DATABASE_URL",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDGDZlMJOo4ywROtY2h0LSbOaH6iKd8sNU",
+  authDomain: "otetudai-d5648.firebaseapp.com",
+  databaseURL: "https://otetudai-d5648-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "otetudai-d5648",
+  storageBucket: "otetudai-d5648.firebasestorage.app",
+  messagingSenderId: "233599253049",
+  appId: "1:233599253049:web:b82a435b59cbd739512be8"
 };
+
+
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
