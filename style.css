@@ -26,6 +26,14 @@ button {
   margin-top: 5px;
 }
 
+#allowanceDisplay {
+  margin-top: 5px;
+}
+
+#payAllowance {
+  margin-top: 5px;
+}
+
 @media (max-width: 600px) {
   body {
     padding: 10px;

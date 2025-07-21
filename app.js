@@ -20,6 +20,7 @@ const auth = getAuth(firebaseApp);
 const userSelect = document.getElementById('userSelect');
 const taskList = document.getElementById('taskList');
 const historyList = document.getElementById('historyList');
+const paymentList = document.getElementById('paymentList');
 const newTaskInput = document.getElementById('newTask');
 const taskRewardInput = document.getElementById('taskReward');
 const addTaskBtn = document.getElementById('addTask');
@@ -28,12 +29,15 @@ const bonusInput = document.getElementById('bonusAmount');
 const saveBonusBtn = document.getElementById('saveBonus');
 const authStatus = document.getElementById('auth-status');
 const stampDisplay = document.getElementById('stampDisplay');
+const allowanceDisplay = document.getElementById('allowanceDisplay');
+const payAllowanceBtn = document.getElementById('payAllowance');
 
 let currentUserId = null;
 let bonusConfig = { required: 5, amount: 500 };
 let usersData = {};
 let tasksData = {};
 let currentStamps = 0;
+let currentAllowance = 0;
 
 function updateStampDisplay(stamps = currentStamps) {
   currentStamps = stamps;
@@ -41,6 +45,11 @@ function updateStampDisplay(stamps = currentStamps) {
   const filled = '⭐'.repeat(stamps);
   const empty = '☆'.repeat(Math.max(0, max - stamps));
   stampDisplay.textContent = `スタンプ: ${filled}${empty} (${stamps}/${max})`;
+}
+
+function updateAllowanceDisplay(amount = currentAllowance) {
+  currentAllowance = amount;
+  allowanceDisplay.textContent = `たまったお小遣い: ${amount}円`;
 }
 
 signInAnonymously(auth)
@@ -53,6 +62,7 @@ onAuthStateChanged(auth, (user) => {
     loadTasks();
     loadBonus();
     loadHistory();
+    loadPayments();
   }
 });
 
@@ -63,7 +73,7 @@ function loadUsers() {
     Object.entries(usersData).forEach(([id, user]) => {
       const option = document.createElement('option');
       option.value = id;
-      option.textContent = `${user.name} (スタンプ:${user.stamps || 0})`;
+      option.textContent = `${user.name} (スタンプ:${user.stamps || 0} お小遣い:${user.allowance || 0}円)`;
       userSelect.appendChild(option);
     });
     if (!currentUserId || !usersData[currentUserId]) {
@@ -72,6 +82,8 @@ function loadUsers() {
     userSelect.value = currentUserId;
     currentStamps = usersData[currentUserId]?.stamps || 0;
     updateStampDisplay(currentStamps);
+    currentAllowance = usersData[currentUserId]?.allowance || 0;
+    updateAllowanceDisplay(currentAllowance);
   });
 }
 
@@ -79,6 +91,8 @@ userSelect.addEventListener('change', () => {
   currentUserId = userSelect.value;
   currentStamps = usersData[currentUserId]?.stamps || 0;
   updateStampDisplay(currentStamps);
+  currentAllowance = usersData[currentUserId]?.allowance || 0;
+  updateAllowanceDisplay(currentAllowance);
 });
 
 function loadTasks() {
@@ -101,12 +115,28 @@ function loadHistory() {
   onValue(ref(db, 'history'), (snapshot) => {
     const histories = snapshot.val() || {};
     historyList.innerHTML = '';
-    Object.values(histories).forEach(h => {
-      const li = document.createElement('li');
-      const rewardTxt = h.reward ? ` (${h.reward}円)` : '';
-      li.textContent = `${h.userName} が ${h.taskName}${rewardTxt} を実施 (${new Date(h.timestamp).toLocaleString()})`;
-      historyList.appendChild(li);
-    });
+    Object.values(histories)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .forEach(h => {
+        const li = document.createElement('li');
+        const rewardTxt = h.reward ? ` (${h.reward}円)` : '';
+        li.textContent = `${h.userName} が ${h.taskName}${rewardTxt} を実施 (${new Date(h.timestamp).toLocaleString()})`;
+        historyList.appendChild(li);
+      });
+  });
+}
+
+function loadPayments() {
+  onValue(ref(db, 'payments'), (snapshot) => {
+    const payments = snapshot.val() || {};
+    paymentList.innerHTML = '';
+    Object.values(payments)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = `${p.userName} に ${p.amount}円 渡した (${new Date(p.timestamp).toLocaleString()})`;
+        paymentList.appendChild(li);
+      });
   });
 }
 
@@ -143,21 +173,51 @@ function recordTask(taskId, taskName) {
   const userRef = ref(db, `users/${currentUserId}`);
   get(userRef).then(snap => {
     const user = snap.val();
-    const stamps = (user.stamps || 0) + 1;
-    update(userRef, { stamps });
+    let stamps = (user.stamps || 0) + 1;
+    let allowance = user.allowance || 0;
+    const reward = tasksData[taskId]?.reward || 0;
+    allowance += reward;
     const histRef = push(ref(db, 'history'));
     set(histRef, {
       userName: user.name,
       taskName,
-      reward: tasksData[taskId]?.reward || 0,
+      reward,
       timestamp: Date.now()
     });
+    limitList('history');
     if (stamps >= bonusConfig.required) {
       alert(`${user.name} さんはボーナス達成! ${bonusConfig.amount}円ゲット`);
-      update(userRef, { stamps: 0 });
-      updateStampDisplay(0);
-    } else {
-      updateStampDisplay(stamps);
+      stamps = 0;
+      allowance += bonusConfig.amount;
+    }
+    update(userRef, { stamps, allowance });
+    updateStampDisplay(stamps);
+    updateAllowanceDisplay(allowance);
+  });
+}
+
+function limitList(path, limit = 10) {
+  get(ref(db, path)).then(snapshot => {
+    const data = snapshot.val() || {};
+    const entries = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
+    while (entries.length > limit) {
+      const [key] = entries.shift();
+      set(ref(db, `${path}/${key}`), null);
     }
   });
 }
+
+payAllowanceBtn.addEventListener('click', () => {
+  if (!currentUserId) return;
+  const amount = currentAllowance;
+  if (amount <= 0) return;
+  const userRef = ref(db, `users/${currentUserId}`);
+  get(userRef).then(snap => {
+    const user = snap.val();
+    update(userRef, { allowance: 0 });
+    updateAllowanceDisplay(0);
+    const pRef = push(ref(db, 'payments'));
+    set(pRef, { userName: user.name, amount, timestamp: Date.now() });
+    limitList('payments');
+  });
+});
