@@ -100,6 +100,10 @@ function loadTasks() {
     tasksData = snapshot.val() || {};
     taskList.innerHTML = '';
     Object.entries(tasksData).forEach(([id, task]) => {
+      if (task.reward === undefined) {
+        update(ref(db, `tasks/${id}`), { reward: 0 });
+        task.reward = 0;
+      }
       const li = document.createElement('li');
       li.textContent = `${task.name} (${task.reward || 0}円)`;
       const doneBtn = document.createElement('button');
