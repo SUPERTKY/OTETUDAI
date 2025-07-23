@@ -85,7 +85,26 @@ function updateAllowanceDisplay(amount = currentAllowance) {
 function loadPassword() {
   get(ref(db, 'password')).then(snapshot => {
     dbPassword = snapshot.val() || '';
+    checkAutoLogin();
   });
+}
+
+function checkAutoLogin() {
+  const saved = localStorage.getItem('savedPassword');
+  if (saved && saved === dbPassword) {
+    showMain();
+  }
+}
+
+function showMain() {
+  loginSection.style.display = 'none';
+  mainSection.style.display = 'block';
+  loadUser();
+  loadTasks();
+  loadHistory();
+  loadPayments();
+  passwordInput.value = '';
+  loginError.textContent = '';
 }
 
 
@@ -169,14 +188,8 @@ function deletePaymentItem(key) {
 function handleLogin() {
   const input = passwordInput.value;
   if (input === dbPassword) {
-    loginSection.style.display = 'none';
-    mainSection.style.display = 'block';
-    loadUser();
-    loadTasks();
-    loadHistory();
-    loadPayments();
-    passwordInput.value = '';
-    loginError.textContent = '';
+    localStorage.setItem('savedPassword', input);
+    showMain();
   } else {
     loginError.textContent = 'パスワードが違います';
   }
