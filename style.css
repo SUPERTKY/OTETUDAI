@@ -1,0 +1,50 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  line-height: 1.5;
+}
+
+h1 {
+  text-align: center;
+}
+
+section {
+  margin-bottom: 20px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+button {
+  margin-left: 10px;
+}
+
+#loginSection {
+  margin-bottom: 20px;
+}
+
+.error {
+  color: red;
+  margin-top: 5px;
+}
+
+#stampDisplay {
+  font-size: 1.5em;
+  margin-top: 5px;
+}
+
+#allowanceDisplay {
+  margin-top: 5px;
+}
+
+#payAllowance {
+  margin-top: 5px;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+}
